@@ -1,0 +1,94 @@
+---
+title: "Course Project PML"
+author: "Ravneet Singh"
+date: "November 7, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Project - Practical Machine Learning
+
+## Backgroud:
+
+In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Libraries Used:
+
+Load required libraries:
+
+```{r}
+library(caret)
+library(rattle)
+```
+
+## Load The Data:
+```{r}
+trainingData <- read.csv("pml-training.csv")
+dim(trainingData)
+testingData <- read.csv("pml-testing.csv")
+dim(testingData)
+```
+
+The training data set is made of 19622 observations on 160 columns. Let's remove unnecessary NAs and the first seven columns give information about the people who did the test and timestamps.
+```{r}
+# Find Columns to remove from Training set
+columnsToRemove <- which(colSums(is.na(trainingData) |trainingData=="") > 0.9 * dim(trainingData)[1]) 
+cleanTrainingData <- trainingData[,-columnsToRemove]
+cleanTrainingData <- cleanTrainingData[,-c(1:7)]
+dim(cleanTrainingData)
+
+#  Find Columns to remove from Testing set
+columnsToRemove <- which(colSums(is.na(testingData) |testingData=="") > 0.9 * dim(testingData)[1]) 
+cleanTestingData <- testingData[,-columnsToRemove]
+cleanTestingData <- cleanTestingData[,-1]
+dim(cleanTestingData)
+
+set.seed(12345)
+trainingPartition <- createDataPartition(cleanTrainingData$classe, p=0.75, list=FALSE)
+trainingSet <- cleanTrainingData[trainingPartition,]
+testingSet <- cleanTrainingData[-trainingPartition,]
+dim(trainingSet)
+```
+
+### We will test using 3 different models : 
+1. Classification Tree 
+```{r}
+trControl <- trainControl(method="cv", number=5)
+model_CT <- train(classe~., data=trainingSet, method="rpart", trControl=trControl)
+fancyRpartPlot(model_CT$finalModel)
+trainpred <- predict(model_CT,newdata=testingSet)
+confMatCT <- confusionMatrix(testingSet$classe,trainpred)
+confMatCT$table
+confMatCT$overall[1]
+```
+We noticed that the accuracy of this first model is very low which is about 55%.
+
+2. Random Forest
+```{r}
+model_RF <- train(classe~., data=trainingSet, method="rf", trControl=trControl, verbose=FALSE)
+plot(model_RF,main="Accuracy of Random Forest model by Number of Predictors")
+trainpred <- predict(model_RF,newdata=testingSet)
+confMatRF <- confusionMatrix(testingSet$classe,trainpred)
+confMatRF$table
+confMatRF$overall[1]
+plot(model_RF$finalModel,main="Model error of Random forest model by Number of Trees")
+```
+With random forest, we achieved an accuracy of 99.3% using cross-validation with 5 steps
+
+3. Gradient Boosting Method
+```{r}
+model_GBM <- train(classe~., data=trainingSet, method="gbm", trControl=trControl, verbose=FALSE)
+plot(model_GBM)
+trainpred <- predict(model_GBM,newdata=testingSet)
+confMatGBM <- confusionMatrix(testingSet$classe,trainpred)
+confMatGBM$table
+confMatGBM$overall[1]
+```
+Accuracy with 5 folds is 95.9%.
+
+## Conclusion:
+From above investigation we found that Random Forest technique gives best accuracy.
+
