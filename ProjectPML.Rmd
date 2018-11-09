@@ -22,6 +22,9 @@ Load required libraries:
 ```{r}
 library(caret)
 library(rattle)
+library(rpart)
+library(randomForest)
+library(gbm)
 ```
 
 ## Load The Data:
@@ -30,6 +33,7 @@ trainingData <- read.csv("pml-training.csv")
 dim(trainingData)
 testingData <- read.csv("pml-testing.csv")
 dim(testingData)
+str(trainingData)
 ```
 
 The training data set is made of 19622 observations on 160 columns. Let's remove unnecessary NAs and the first seven columns give information about the people who did the test and timestamps.
@@ -45,12 +49,14 @@ columnsToRemove <- which(colSums(is.na(testingData) |testingData=="") > 0.9 * di
 cleanTestingData <- testingData[,-columnsToRemove]
 cleanTestingData <- cleanTestingData[,-1]
 dim(cleanTestingData)
+str(cleanTestingData)
 
 set.seed(12345)
 trainingPartition <- createDataPartition(cleanTrainingData$classe, p=0.75, list=FALSE)
 trainingSet <- cleanTrainingData[trainingPartition,]
 testingSet <- cleanTrainingData[-trainingPartition,]
 dim(trainingSet)
+dim(testingSet)
 ```
 
 ### We will test using 3 different models : 
@@ -91,4 +97,8 @@ Accuracy with 5 folds is 95.9%.
 
 ## Conclusion:
 From above investigation we found that Random Forest technique gives best accuracy.
+```{r}
+predictions <- predict(model_RF,newdata=cleanTestingData)
+predictions
+```
 
